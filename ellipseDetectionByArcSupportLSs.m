@@ -40,39 +40,21 @@ function [ellipses, L, posi] = ellipseDetectionByArcSupportLSs(I, Tac, Tr, speci
     [mylabels,labels, ellipses] = ellipseDetection(candidates ,[x, y], normals, unit_dis_tolerance, normal_tolerance, Tmin, angleCoverage, I);%后四个参数 0.5% 20° 0.6 180° 
     disp('-----------------------------------------------------------');
     disp(['running time:',num2str(etime(clock,t0)),'s']);
-%     labels
-%     size(labels)
-%     size(y)
-    warning('on', 'all');
+   warning('on', 'all');
      L = zeros(size(I, 1), size(I, 2));%创建与输入图像I一样大小的0矩阵L
      L(sub2ind(size(L), y, x)) = mylabels;%labels,长度等于edge_pixel_n x 1,如果第i个边缘点用于识别了第j个圆，则该行标记为j,否则为0。大小 edge_pixel_n x 1;现在转化存到图像中，在图像中标记
-%     figure;imshow(L==2);%LLL
-%     imwrite((L==2),'D:\Graduate Design\画图\edge_result.jpg');
 end
-%% ================================================================================================================================
-%函数1
-%输入
-%candidates: ncandidates x 5
-%points:     边缘像素点的坐标(x,y),nx2,n为总共的边缘点数
-%lineLabels: 对相应的坐标(xi,yi)标记，对应靠近相应的线段，nx1,未标记则为0
-%lines:      线段参数，-B,A,xmid,ymid，其中(xmid,ymid)对应相应的线段中点，mx4，m为总共m条线段
-%输出
-%labels：    长度等于n x 1,如果第i个边缘点用于识别了第j个圆，则该行标记为j,否则为0。大小 n x 1
-%C：   识别出来的对称中心，长半轴，短半轴，和倾角，每一行格式是(x,y,a,b,phi)
+
 function [mylabels,labels, ellipses] = ellipseDetection(candidates, points, normals, distance_tolerance, normal_tolerance, Tmin, angleCoverage, E)
     labels = zeros(size(points, 1), 1);
     mylabels = zeros(size(points, 1), 1);%测试
     ellipses = zeros(0, 5);
   
-    %% 对于显著性很大的候选椭圆，且满足极其严格要求，直接检测出来，SE(salient ellipses)；同时对~SE按照goodness进行pseudo order
-    goodness = zeros(size(candidates, 1), 1);%初始化时为0，当检测到显著椭圆时直接提取，相应位置的goodness(i) = -1标记。
+    goodness = zeros(size(candidates, 1), 1);
     for i = 1 : size(candidates,1)
-        %ellipse circumference is approximate pi * (1.5*sum(ellipseAxes)-sqrt(ellipseAxes(1)*ellipseAxes(2))
         ellipseCenter = candidates(i, 1 : 2);
         ellipseAxes   = candidates(i, 3:4);
         tbins = min( [ 180, floor( pi * (1.5*sum(ellipseAxes)-sqrt(ellipseAxes(1)*ellipseAxes(2)) ) * Tmin ) ] );%选分区
-        %ellipse_normals = computePointAngle(candidates(i,:),points);
-        %inliers = find( labels == 0 & dRosin_square(candidates(i,:),points) <= 1 );  % +-1个像素内找支持内点
         %加速计算，只挑出椭圆外接矩形内的边缘点(椭圆中的长轴a>b),s_dx存储的是相对points的索引
         s_dx = find( points(:,1) >= (ellipseCenter(1)-ellipseAxes(1)-1) & points(:,1) <= (ellipseCenter(1)+ellipseAxes(1)+1) & points(:,2) >= (ellipseCenter(2)-ellipseAxes(1)-1) & points(:,2) <= (ellipseCenter(2)+ellipseAxes(1)+1));
         inliers = s_dx(dRosin_square(candidates(i,:),points(s_dx,:)) <= 1);
@@ -175,18 +157,6 @@ function [mylabels,labels, ellipses] = ellipseDetection(candidates, points, norm
 end
 
 
-%% ================================================================================================================================
-%函数2
-%输入
-%list：      聚类候选的圆心和半径组合，(x,y,a,b,r)，大小 candidate_n x 5.
-%points:     边缘像素点的坐标(x,y),nx2,n为总共的边缘点数
-%normals:    每一个边缘点对应的梯度向量，normals大小为nx2，格式为(xi,yi)
- 
-%输出
-%labels：    如果第i个边缘点用于检测到了第j个圆，则labels第i行赋值为j，否则为0.长度与points一致，n x 1
-%circles:    此次检测到的圆,(x,y,z),若检测到detectnum个，则大小为detectnum x 3
-%validCandidates: list的候选圆中，如果第i个圆被检测到了或者不满足圆条件(圆周上内点数量不足)，则第i个位置为false(初始化时为true)，这样在下一个angleloop轮次验证时可以剔除掉，不必要重复验证。
-%                 validCandidates的大小为 candidate_n x 1.
 function [mylabels,labels, ellipses, validCandidates] = subEllipseDetection( list, points, normals, distance_tolerance, normal_tolerance, Tmin, angleCoverage,E,angleLoop)
     labels = zeros(size(points, 1), 1);%边缘像素点的总数量n,n x 1
     mylabels = zeros(size(points, 1), 1);%测试
